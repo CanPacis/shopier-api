@@ -2,12 +2,15 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"math"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
 	"github.com/gocolly/colly"
+	"github.com/gorilla/handlers"
 	mux "github.com/gorilla/mux"
 )
 
@@ -48,16 +51,22 @@ type Products struct {
 
 func main() {
 	r := mux.NewRouter()
+	headers := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type"})
+	methods := handlers.AllowedMethods([]string{"GET", "POST"})
+	origins := handlers.AllowedOrigins([]string{"*"})
 
 	r.HandleFunc("/products/{shop}", ProductsHandler)
 	r.HandleFunc("/product/{id}", ProductHandler)
 
 	http.Handle("/", r)
 
-	http.ListenAndServe(":8000", nil)
+	fmt.Println("Server is up and listening on port 8000")
+	loggedRouter := handlers.LoggingHandler(os.Stdout, handlers.CORS(headers, methods, origins)(r))
+	http.ListenAndServe(":8000", loggedRouter)
 }
 
 func ProductHandler(w http.ResponseWriter, r *http.Request) {
+
 	var product Product
 	var images []string
 	var c = colly.NewCollector()
